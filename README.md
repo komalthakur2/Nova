@@ -28,12 +28,16 @@ Built using **React + Clerk + Node.js + PostgreSQL**, and deployed on **Vercel**
 | **Frontend** | React + Vite + TailwindCSS |
 | **Auth** | Clerk |
 | **Backend** | Node.js + Express |
-| **Database** | PostgreSQL (Neon) |
+| **Database** | PostgreSQL (Neon:cloud hosting) |
 | **Deployment** | Vercel |
-| **AI APIs** | Gemini / OpenAI / Replicate |
-| **File Handling** | Multer + pdf-parse |
+| **AI APIs** | Gemini / OpenAI |
+
 
 ---
 
-## ⚙️ Project Structure
+## 🌍 Live Demo
 
+🔗 [Nova](https://nova-ten-navy.vercel.app/)
+
+---
+👩‍💻 Author Komal Kumari Thakur
