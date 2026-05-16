@@ -1,5 +1,4 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import OpenAI from "openai";
 import sql from "../configs/db.js";
 import { clerkClient } from "@clerk/express";
 import axios from "axios";
@@ -10,10 +9,7 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const pdfParse = require("pdf-parse");
 
-const openai = new OpenAI({
-    apiKey: process.env.GEMINI_API_KEY,
-    baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export const generateArticle = async (req, res)=>{
     try{
@@ -24,24 +20,23 @@ export const generateArticle = async (req, res)=>{
         if(plan !== 'premium' && free_usage >=10){
             return res.json({success: false, message: 'Free usage limit reached. Please upgrade to premium plan to continue.'})
     }
-    const response = await openai.chat.completions.create({
-    model: "gemini-2.5-flash",
-    messages: [
-        { role: "system", content: `You are an expert article writer. You MUST write a comprehensive article that is strictly around ${length} words in length. Do not stop early and ensure the length requirement is satisfied.` },
-        {
-            role: "user",
-            content: prompt,
-        },
-    ],
-    temperature: 0.7,
-    max_tokens: length * 2,
-});
-const content = response.choices[0].message.content
-await sql `INSERT INTO creations (user_id, prompt, content, type,publish) VALUES (${userId}, ${prompt}, ${content}, 'article',false)`;
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      systemInstruction: `You are an expert article writer. You MUST write a comprehensive article that is strictly around ${length} words in length. Do not stop early and ensure the length requirement is satisfied.`,
+    });
+    const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: length * 2,
+        }
+    });
+    const content = result.response.text();
+sql`INSERT INTO creations (user_id, prompt, content, type,publish) VALUES (${userId}, ${prompt}, ${content}, 'article',false)`.catch(console.error);
 if(plan !== 'premium'){
-    await clerkClient.users.updateUserMetadata(userId,{
+    clerkClient.users.updateUserMetadata(userId,{
         privateMetadata: {free_usage: free_usage + 1}
-})
+}).catch(console.error);
     }
 res.json({success: true, content})
 }
@@ -60,24 +55,23 @@ export const generateBlogTitle = async (req, res)=>{
         if(plan !== 'premium' && free_usage >=10){
             return res.json({success: false, message: 'Free usage limit reached. Please upgrade to premium plan to continue.'})
     }
-    const response = await openai.chat.completions.create({
-    model: "gemini-2.5-flash",
-    messages: [
-        { role: "system", content: "You are a creative blog title generator. Provide exactly 5 catchy, SEO-friendly blog titles formatted as a numbered list. Do not include any introductory or concluding text." },
-        {
-            role: "user",
-            content: prompt,
-        },
-    ],
-    temperature: 0.7,
-    max_tokens: 1000,
-});
-const content = response.choices[0].message.content
-await sql `INSERT INTO creations (user_id, prompt, content, type) VALUES (${userId}, ${prompt}, ${content}, 'article')`;
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      systemInstruction: "You are a creative blog title generator. Provide exactly 5 catchy, SEO-friendly blog titles formatted as a numbered list. Do not include any introductory or concluding text.",
+    });
+    const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1000,
+        }
+    });
+    const content = result.response.text();
+sql`INSERT INTO creations (user_id, prompt, content, type) VALUES (${userId}, ${prompt}, ${content}, 'article')`.catch(console.error);
 if(plan !== 'premium'){
-    await clerkClient.users.updateUserMetadata(userId,{
+    clerkClient.users.updateUserMetadata(userId,{
         privateMetadata: {free_usage: free_usage + 1}
-})
+}).catch(console.error);
     }
 res.json({success: true, content})
 }
@@ -105,12 +99,12 @@ const {data} = await axios.post("https://clipdrop-api.co/text-to-image/v1",formD
     },
     responseType:"arraybuffer",
 })
-const base64Image = `data:image/png;base64,${Buffer.from(data, 'binary') . toString('base64')}`;
-const{secure_url} = await cloudinary.uploader.upload(base64Image)
+const base64Image = `data:image/png;base64,${Buffer.from(data, 'binary').toString('base64')}`;
+res.json({ success: true, content: base64Image });
 
-await sql `INSERT INTO creations (user_id, prompt, content, type,publish) VALUES (${userId}, ${prompt}, ${secure_url}, 'image',${publish ?? false})`;
-
-res.json({success: true, content: secure_url})
+cloudinary.uploader.upload(base64Image).then((res) => {
+    sql`INSERT INTO creations (user_id, prompt, content, type,publish) VALUES (${userId}, ${prompt}, ${res.secure_url}, 'image',${publish ?? false})`.catch(console.error);
+}).catch(console.error);
 }
     catch (error) {
         console.log(error.message);
@@ -140,10 +134,10 @@ export const removeImageBackground = async (req, res) => {
       ],
     });
 
-    await sql`
+    sql`
       INSERT INTO creations (user_id, prompt, content, type, publish)
       VALUES (${userId}, 'Remove background from image', ${secure_url}, 'image', false)
-    `;
+    `.catch(console.error);
 
     res.json({ success: true, content: secure_url });
   } catch (error) {
@@ -169,7 +163,7 @@ const imageUrl = cloudinary.url(public_id, {
     resource_type: "image"
    })
 
-await sql `INSERT INTO creations (user_id, prompt, content, type) VALUES (${userId}, ${'Removed ${object} from image'}, ${imageUrl}, 'image')`;
+sql`INSERT INTO creations (user_id, prompt, content, type) VALUES (${userId}, ${'Removed ${object} from image'}, ${imageUrl}, 'image')`.catch(console.error);
 
 res.json({success: true, content: imageUrl})
 }
@@ -179,7 +173,7 @@ res.json({success: true, content: imageUrl})
     }
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
 
 export const resumeReview = async (req, res) => {
   try {
@@ -228,10 +222,10 @@ export const resumeReview = async (req, res) => {
     const review = response.text();
     console.log("Gemini response received");
 
-    await sql`
+    sql`
       INSERT INTO creations (user_id, prompt, content, type)
       VALUES (${userId}, 'Review the uploaded resume', ${review}, 'resume-review')
-    `;
+    `.catch(console.error);
 
     res.json({ success: true, content: review });
   } catch (error) {
