@@ -15,15 +15,19 @@ const ReviewResume = () => {
         e.preventDefault();
         try{
 setLoading(true)
+console.log("Sending resume review request");
+console.log("Selected file:", input);
     const formData = new FormData()
-    formData.append('resume', input)
-    const {data} = await axios.post('/api/ai/resume-review',formData,{headers: {Authorization: `Bearer ${await getToken()}`}})
+    formData.append("resume", input)
+    const {data} = await axios.post(`${import.meta.env.VITE_BASE_URL}/api/ai/review-resume`,formData,{headers: {Authorization: `Bearer ${await getToken()}`}})
 if(data.success){
   setContent(data.content)
 }else{
   toast.error(data.message)
 }
         }catch(error){
+console.log("Axios Error:", error);
+console.log("Response:", error.response);
           toast.error(error.message)
         }
         setLoading(false)

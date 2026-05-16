@@ -1,3 +1,4 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
 import sql from "../configs/db.js";
 import { clerkClient } from "@clerk/express";
@@ -5,22 +6,15 @@ import axios from "axios";
 import {v2 as cloudinary} from 'cloudinary';
 import FormData from "form-data";
 import fs from "fs";
-// import { createRequire } from "module";
-// const require = createRequire(import.meta.url);
-// const pdfParse = require("pdf-parse");
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const pdfParse = require("pdf-parse");
-
-
-
-
-
 
 const openai = new OpenAI({
     apiKey: process.env.GEMINI_API_KEY,
     baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
 });
+
 export const generateArticle = async (req, res)=>{
     try{
         const {userId} = req.auth();
@@ -47,7 +41,6 @@ await sql `INSERT INTO creations (user_id, prompt, content, type,publish) VALUES
 if(plan !== 'premium'){
     await clerkClient.users.updateUserMetadata(userId,{
         privateMetadata: {free_usage: free_usage + 1}
-
 })
     }
 res.json({success: true, content})
@@ -57,7 +50,6 @@ res.json({success: true, content})
         res.json({success: false, message: error.message})
     }
 }
-
 
 export const generateBlogTitle = async (req, res)=>{
     try{
@@ -71,7 +63,6 @@ export const generateBlogTitle = async (req, res)=>{
     const response = await openai.chat.completions.create({
     model: "gemini-2.0-flash",
     messages: [
-        
         {
             role: "user",
             content: prompt,
@@ -85,7 +76,6 @@ await sql `INSERT INTO creations (user_id, prompt, content, type) VALUES (${user
 if(plan !== 'premium'){
     await clerkClient.users.updateUserMetadata(userId,{
         privateMetadata: {free_usage: free_usage + 1}
-
 })
     }
 res.json({success: true, content})
@@ -95,37 +85,6 @@ res.json({success: true, content})
         res.json({success: false, message: error.message})
     }
 }
-
-
-// export const removeImageBackground= async (req, res)=>{
-//     try{
-//         const {userId} = req.auth();
-//         const { image} = req.file;
-//         const plan = req.plan;
-       
-//         if(plan !== 'premium' ){
-//             return res.json({success: false, message: 'Free usage limit reached. Please upgrade to premium plan to continue.'})
-//     }
-   
-// const{secure_url} = await cloudinary.uploader.upload(image.path,{
-//     transformation: [
-//         {
-//             effect: "background_removal",
-//             background_removal: 'remove_the_background'
-//         }
-//     ]
-// })
-
-// await sql `INSERT INTO creations (user_id, prompt, content, type) VALUES (${userId}, 'Remove background from image', ${secure_url}, 'image',${publish ?? false})`;
-
-// res.json({success: true, content: secure_url})
-// }
-//     catch (error) {
-//         console.log(error.message);
-//         res.json({success: false, message: error.message})
-//     }
-// }
-
 
 export const generateImage= async (req, res)=>{
     try{
@@ -157,35 +116,6 @@ res.json({success: true, content: secure_url})
         res.json({success: false, message: error.message})
     }
 }
-
-// export const removeImageBackground = async (req, res)=>{
-//     try{
-//         const {userId} = req.auth();
-//         const image = req.file;
-//         const plan = req.plan;
-       
-//         if(plan !== 'premium' ){
-//             return res.json({success: false, message: 'Free usage limit reached. Please upgrade to premium plan to continue.'})
-//     }
-   
-// const{secure_url} = await cloudinary.uploader.upload(image.path,{
-//     transformation: [
-//         {
-//             effect: "background_removal",
-//             background_removal: 'remove_the_background'
-//         }
-//     ]
-// })
-
-// await sql `INSERT INTO creations (user_id, prompt, content, type,publish) VALUES (${userId}, 'Remove background from image', ${secure_url}, 'image')`;
-
-// res.json({success: true, content: secure_url})
-// }
-//     catch (error) {
-//         console.log(error.message);
-//         res.json({success: false, message: error.message})
-//     }
-// }
 
 export const removeImageBackground = async (req, res) => {
   try {
@@ -221,8 +151,6 @@ export const removeImageBackground = async (req, res) => {
   }
 };
 
-
-
 export const removeImageObject= async (req, res)=>{
     try{
         const {userId} = req.auth();
@@ -250,47 +178,11 @@ res.json({success: true, content: imageUrl})
     }
 }
 
-// export const resumeReview = async (req, res)=>{
-//     try{
-//         const {userId} = req.auth();
-//         const resume = req.file;
-//         const plan = req.plan;
-       
-//         if(plan !== 'premium' ){
-//             return res.json({success: false, message: 'Free usage limit reached. Please upgrade to premium plan to continue.'})
-//     }
-   
-//      if(resume.size > 5 * 1024 * 1024){
-//         return res.json({success: false, message: 'File size exceeds the 5MB limit.'})
-//      }
-//      const dataBuffer = fs.readFileSync(resume.path)
-//      const pdfData = await pdfParse(dataBuffer)
-//      const prompt = `Review the following resume and provide constructive feedbackon its strengths, weakness, and areas for improvement. Resume Content:\n\n${pdfData.text}`
-//       const response = await openai.chat.completions.create({
-//     model: "gemini-2.0-flash",
-//     messages: [
-        
-//         {
-//             role: "user",
-//             content: prompt,
-//         },
-//     ],
-//     temperature: 0.7,
-//     max_tokens: 1000,
-// });
-// const content = response.choices[0].message.content
-// await sql `INSERT INTO creations (user_id, prompt, content, type) VALUES (${userId}, 'Review the uploaded resume', ${content}, 'resume-review')`;
-
-// res.json({success: true, content })
-// }
-//     catch (error) {
-//         console.log(error.message);
-//         res.json({success: false, message: error.message})
-//     }
-// }
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export const resumeReview = async (req, res) => {
   try {
+    console.log("Resume controller reached");
     const { userId } = req.auth();
     const resume = req.file;
     const plan = req.plan;
@@ -298,12 +190,15 @@ export const resumeReview = async (req, res) => {
     if (plan !== "premium") {
       return res.json({
         success: false,
-        message:
-          "Free usage limit reached. Please upgrade to premium plan to continue.",
+        message: "Free usage limit reached. Please upgrade to premium plan to continue.",
       });
     }
 
-    // ✅ Step 1: File size validation
+    console.log("Uploaded file:", req.file);
+    if (!resume) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+
     if (resume.size > 5 * 1024 * 1024) {
       return res.json({
         success: false,
@@ -311,38 +206,35 @@ export const resumeReview = async (req, res) => {
       });
     }
 
-    // ✅ Step 2: Read and parse PDF
-    const dataBuffer = fs.readFileSync(resume.path);   // <-- Add this line
-    const pdfData = await pdfParse(dataBuffer);         // <-- Add this line
+    const dataBuffer = fs.readFileSync(resume.path);
+    const pdfData = await pdfParse(dataBuffer);
+    console.log("PDF parsed successfully");
 
-    // ✅ Step 3: Create the AI prompt using extracted PDF text
-    const prompt = `Review the following resume and provide constructive feedback on its strengths, weaknesses, and areas for improvement. Resume Content:\n\n${pdfData.text}`;
+    const cleanedText = pdfData.text
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 2000);
 
-    // ✅ Step 4: Call Gemini/OpenAI API
-    const response = await openai.chat.completions.create({
-      model: "gemini-2.0-flash",
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 1000,
+    const prompt = `Review the following resume and provide constructive feedback on its strengths, weaknesses, and areas for improvement. Resume Content:\n\n${cleanedText}`;
+
+    console.log("Sending request to Gemini");
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
     });
 
-    const content = response.choices[0].message.content;
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const review = response.text();
+    console.log("Gemini response received");
 
-    // ✅ Step 5: Save review to database
     await sql`
       INSERT INTO creations (user_id, prompt, content, type)
-      VALUES (${userId}, 'Review the uploaded resume', ${content}, 'resume-review')
+      VALUES (${userId}, 'Review the uploaded resume', ${review}, 'resume-review')
     `;
 
-    // ✅ Step 6: Send response
-    res.json({ success: true, content });
+    res.json({ success: true, content: review });
   } catch (error) {
-    console.log(error.message);
-    res.json({ success: false, message: error.message });
+    console.error("Resume Review Error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
