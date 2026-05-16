@@ -25,16 +25,16 @@ export const generateArticle = async (req, res)=>{
             return res.json({success: false, message: 'Free usage limit reached. Please upgrade to premium plan to continue.'})
     }
     const response = await openai.chat.completions.create({
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     messages: [
-        { role: "system", content: "You are a helpful assistant." },
+        { role: "system", content: `You are an expert article writer. You MUST write a comprehensive article that is strictly around ${length} words in length. Do not stop early and ensure the length requirement is satisfied.` },
         {
             role: "user",
             content: prompt,
         },
     ],
     temperature: 0.7,
-    max_tokens: length,
+    max_tokens: length * 2,
 });
 const content = response.choices[0].message.content
 await sql `INSERT INTO creations (user_id, prompt, content, type,publish) VALUES (${userId}, ${prompt}, ${content}, 'article',false)`;
@@ -61,7 +61,7 @@ export const generateBlogTitle = async (req, res)=>{
             return res.json({success: false, message: 'Free usage limit reached. Please upgrade to premium plan to continue.'})
     }
     const response = await openai.chat.completions.create({
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     messages: [
         {
             role: "user",
