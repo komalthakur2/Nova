@@ -17,7 +17,7 @@ const {getToken} = useAuth();
     e.preventDefault();
     try{
 setLoading(true)
-const prompt = `Generate a blog title for the keyword ${input} in the category of ${selectedCategory}`
+const prompt = `Generate 5 catchy blog titles for the keyword ${input} in the category of ${selectedCategory}`
 const {data} = await axios.post('/api/ai/generate-blog-title',{prompt},{headers: {Authorization: `Bearer ${await getToken()}`}})
 if(data.success){
   setContent(data.content)

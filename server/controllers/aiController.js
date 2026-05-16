@@ -63,13 +63,14 @@ export const generateBlogTitle = async (req, res)=>{
     const response = await openai.chat.completions.create({
     model: "gemini-2.5-flash",
     messages: [
+        { role: "system", content: "You are a creative blog title generator. Provide exactly 5 catchy, SEO-friendly blog titles formatted as a numbered list. Do not include any introductory or concluding text." },
         {
             role: "user",
             content: prompt,
         },
     ],
     temperature: 0.7,
-    max_tokens: 100,
+    max_tokens: 1000,
 });
 const content = response.choices[0].message.content
 await sql `INSERT INTO creations (user_id, prompt, content, type) VALUES (${userId}, ${prompt}, ${content}, 'article')`;
